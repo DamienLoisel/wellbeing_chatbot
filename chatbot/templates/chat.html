@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant Bien-être</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .bot-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+        .out-of-scope {
+            position: relative;
+        }
+        .out-of-scope::after {
+            display: none;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .disclaimer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .stats-link {
+            text-decoration: none;
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Assistant Bien-être</h1>
+            <a href="/employee/{{ employee_id }}/" class="stats-link">Voir les statistiques</a>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                Bonjour, je suis votre assistant bien-être. Comment puis-je vous aider aujourd'hui ?
+            </div>
+        </div>
+        <div class="input-container">
+            <input type="text" id="message-input" placeholder="Écrivez votre message ici...">
+            <button onclick="sendMessage()">Envoyer</button>
+        </div>
+        <div class="disclaimer">
+            Ce service est confidentiel et respecte le RGPD. Il ne remplace pas une consultation avec un professionnel de santé.
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Afficher le message de l'utilisateur
+            appendMessage(message, 'user');
+            input.value = '';
+
+            // Envoyer la requête au serveur
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('employee_id', '{{ employee_id }}');
+            
+            try {
+                const response = await fetch('/chat/', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                appendMessage(data.response, 'bot', data.scopeflag);
+                
+                // Afficher des informations de débogage dans la console
+                console.log('Réponse du serveur:', data);
+                if (data.scopeflag) {
+                    console.log('Message hors sujet détecté');
+                }
+                if (data.violent_words && data.violent_words.length > 0) {
+                    console.log('Mots violents détectés:', data.violent_words);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                appendMessage('Désolé, une erreur est survenue.', 'bot');
+            }
+        }
+
+        function appendMessage(content, type, outOfScope = false) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            // Ajouter la classe out-of-scope si le message est hors sujet
+            if (outOfScope) {
+                messageDiv.classList.add('out-of-scope');
+            }
+            
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Permettre l'envoi avec la touche Entrée
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
