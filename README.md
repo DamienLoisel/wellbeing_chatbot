@@ -32,7 +32,7 @@ Welcome to the **Mental Health Support Chatbot**! 🤖 This project is an intell
 
 With your virtual environment activated:
 ```bash
-python main.py
+python manage.py runserver
 ```
 The server will start at [http://localhost:8000](http://localhost:8000)
 
